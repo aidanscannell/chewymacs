@@ -1,0 +1,592 @@
+#+TITLE: Emacs Config
+#+PROPERTY: header-args:elisp :tangle /Users/aidanscannell/.emacs.d/configs/vanilla-emacs/init.el
+
+This is my Emacs config, originally inspired by [[https://github.com/daviwil/dotfiles/blob/master/Emacs.org#file-browsing][David Wilson's config]] and tweaked to my perfection. A lot of my config is also inspired from my time using [[https://www.spacemacs.org/][spacemacs]] and [[https://github.com/hlissner/doom-emacs][doom emacs]], particularly the keybindings.
+* Startup Performance
+Speed up Emacs startup by reducing frequency of garbage collection.
+#+begin_src elisp
+;; The default is 800 kilobytes.  Measured in bytes.
+(setq gc-cons-threshold (* 50 1000 1000))
+#+end_src
+Measure startup time and show in modeline.
+#+begin_src elisp
+;; Profile emacs startup
+(add-hook 'emacs-startup-hook
+          (lambda ()
+            (message "*** Emacs loaded in %s with %d garbage collections."
+                     (format "%.2f seconds"
+                             (float-time
+                              (time-subtract after-init-time before-init-time)))
+                     gcs-done)))
+#+end_src
+* Global Variables
+#+begin_src elisp
+;; Some functionality uses this to identify you, e.g. GPG configuration, email
+;; clients, file templates and snippets.
+(setq user-full-name "Aidan Scannell"
+      user-mail-address "scannell.aidan@gmail.com")
+
+;; If you use `org' and don't want your org files in the default location below,
+;; change `org-directory'. It must be set before org loads!
+(setq org-directory "~/Dropbox/org/")
+#+end_src
+* Package Management
+Set up ELPA, MELPA, and Org package repositories.
+#+begin_src elisp
+;; Initialize package sources
+(require 'package)
+;; (setq package-enable-at-startup nil)
+(setq package-archives '(("melpa" . "https://melpa.org/packages/")
+                         ("melpa-stable" . "https://stable.melpa.org/packages/")
+                         ("org" . "https://orgmode.org/elpa/")
+                         ("elpa" . "https://elpa.gnu.org/packages/")))
+
+(package-initialize)
+;; (unless package-archive-contents
+;;   (package-refresh-contents))
+#+end_src
+Load use-package to manage package configuration.
+#+begin_src elisp
+;; Initialize use-package on non-Linux platforms
+(unless (package-installed-p 'use-package)
+  (package-install 'use-package))
+
+(require 'use-package)
+(setq use-package-always-ensure t)
+#+end_src
+* Emacs Server/Daemon
+#+begin_src elisp
+;; (setq server-socket-dir "~/.emacs.d/server/")
+;; ;; set different server names for GUI and terminal emacs
+;; (if (eq window-system 'mac)
+;;     (setq server-name "~/.emacs.d/server/gui")
+;;   (setq server-name "~/.emacs.d/server/term")
+;;   )
+;; ;; if a server isn't running then start one
+;; (after! server
+;;   (if (eq (server-running-p server-name) nil)
+;;       (server-start))
+;;   )
+#+end_src
+* Keybindings
+** Meta
+#+begin_src elisp
+;; (global-set-key (kbd "") 'counsel-M-x)
+#+end_src
+** Evil
+#+begin_src elisp
+(defun my/evil-hook ()
+  (dolist (mode '(custom-mode
+                  eshell-mode
+                  git-rebase-mode
+                  erc-mode
+                  circe-server-mode
+                  circe-chat-mode
+                  circe-query-mode
+                  sauron-mode
+                  term-mode))
+    (add-to-list 'evil-emacs-state-modes mode)))
+
+(use-package evil
+  :init
+  (setq evil-want-integration t)
+  (setq evil-want-keybinding nil)
+  (setq evil-want-C-u-scroll t)
+  (setq evil-want-C-i-jump nil)
+  :config
+  (evil-mode 1)
+  (define-key evil-insert-state-map (kbd "C-g") 'evil-normal-state)
+  ;; (define-key evil-insert-state-map (kbd "C-h") 'evil-delete-backward-char-and-join)
+
+  ;; Use visual line motions even outside of visual-line-mode buffers
+  (evil-global-set-key 'motion "j" 'evil-next-visual-line)
+  (evil-global-set-key 'motion "k" 'evil-previous-visual-line)
+
+  (evil-set-initial-state 'messages-buffer-mode 'normal)
+  (evil-set-initial-state 'dashboard-mode 'normal))
+
+;; (use-package evil-collection
+;;   :after evil
+;;   ;; :custom
+;;   ;; (evil-collection-outline-bind-tab-p nil)
+;;   :config
+;;   (evil-collection-init))
+#+end_src
+
+** Which Key
+[[https://github.com/justbur/emacs-which-key][which-key]] gives an overview of what keybindings are available given the keys just entered. Used in Spacemacs and Doom.
+#+begin_src elisp
+(use-package which-key
+  :init (which-key-mode)
+  :diminish which-key-mode
+  :config
+  (setq which-key-idle-delay 0.2))
+#+end_src
+
+** Leader Bindings (general.el)
+Use [[https://github.com/noctuid/general.el][general.el]] to define prefixed keybindings, especially in conjunction with Evil mode.
+#+begin_src elisp
+(use-package general
+  :config
+  (general-create-definer my/leader-keys
+    :keymaps '(normal insert visual emacs)
+    :prefix "SPC"
+    :global-prefix "C-SPC")
+
+  (general-create-definer my/ctrl-c-keys
+    :prefix "C-c")
+
+  (my/leader-keys
+   ;; ":" '(M-x :which-key "counsel-M-x")
+   ":" '(counsel-M-x :which-key "counsel-M-x")
+   "t"  '(:ignore t :which-key "toggles")
+   "tt" '(counsel-load-theme :which-key "choose theme"))
+  )
+#+end_src
+
+* General Configuration
+** User Interface
+#+begin_src elisp
+(setq inhibit-startup-message t) ; Disable startup message
+
+(scroll-bar-mode -1)        ; Disable visible scrollbar
+(tool-bar-mode -1)          ; Disable the toolbar
+(tooltip-mode -1)           ; Disable tooltips
+(set-fringe-mode 10)        ; Give some breathing room
+
+(menu-bar-mode -1)            ; Disable the menu bar
+
+;; Set up the visible bell
+(setq visible-bell t)
+
+(global-display-line-numbers-mode t)
+#+end_src
+
+** Theme
+#+begin_src elisp
+(use-package doom-themes
+  :init (load-theme 'doom-dracula t))
+;; :init (load-theme 'doom-laserwave t))
+#+end_src
+** Modeline
+#+begin_src elisp
+(use-package minions
+  :hook (doom-modeline-mode . minions-mode)
+  :custom
+  (minions-mode-line-lighter ""))
+
+(use-package doom-modeline
+  ;; :after eshell     ;; Make sure it gets hooked after eshell
+  :hook (after-init . doom-modeline-init)
+  :custom-face
+  (mode-line ((t (:height 0.85))))
+  (mode-line-inactive ((t (:height 0.85))))
+  :custom
+  (doom-modeline-height 15)
+  (doom-modeline-bar-width 6)
+  (doom-modeline-lsp t)
+  (doom-modeline-github nil)
+  (doom-modeline-mu4e nil)
+  (doom-modeline-irc nil)
+  (doom-modeline-minor-modes t)
+  (doom-modeline-persp-name nil)
+  (doom-modeline-buffer-file-name-style 'truncate-except-project)
+  (doom-modeline-major-mode-icon nil))
+#+end_src
+
+#+begin_src elisp
+;; NOTE: The first time you load your configuration on a new machine, you'll
+;; need to run the following command interactively so that mode line icons
+;; display correctly:
+;;
+;; M-x all-the-icons-install-fonts
+;; (use-package all-the-icons)
+#+end_src
+* Ivy
+#+begin_src elisp
+(use-package ivy
+  :diminish
+  :bind (("C-s" . swiper)
+         :map ivy-minibuffer-map
+         ("TAB" . ivy-alt-done)
+         ("C-l" . ivy-alt-done)
+         ("C-j" . ivy-next-line)
+         ("C-k" . ivy-previous-line)
+         :map ivy-switch-buffer-map
+         ("C-k" . ivy-previous-line)
+         ("C-l" . ivy-done)
+         ("C-d" . ivy-switch-buffer-kill)
+         :map ivy-reverse-i-search-map
+         ("C-k" . ivy-previous-line)
+         ("C-d" . ivy-reverse-i-search-kill))
+  :config
+  (ivy-mode 1))
+#+end_src
+
+#+RESULTS:
+: ivy-reverse-i-search-kill
+
+* Window Management
+** Window history (undo)
+#+begin_src elisp
+(use-package winner
+  :after evil
+  :config
+  (winner-mode)
+  (define-key evil-window-map "u" 'winner-undo)
+  (define-key evil-window-map "U" 'winner-redo))
+#+end_src
+** evil-windows- keybindings
+#+begin_src elisp
+(defun split-window-below-and-focus ()
+  "Split the window vertically and focus the new window."
+  (interactive)
+  (split-window-below)
+  (windmove-down)
+  (when (and (boundp 'golden-ratio-mode)
+             (symbol-value golden-ratio-mode))
+    (golden-ratio)))
+
+(defun split-window-right-and-focus ()
+  "Split the window horizontally and focus the new window."
+  (interactive)
+  (split-window-right)
+  (windmove-right)
+  (when (and (boundp 'golden-ratio-mode)
+             (symbol-value golden-ratio-mode))
+    (golden-ratio)))
+
+
+(my/leader-keys
+ "w"   '(:ignore w :which-key "windows")
+ "wv"  'evil-window-vsplit
+ "ws"  'evil-window-split
+ "wV"  'split-window-right-and-focus
+ "wS"  'split-window-below-and-focus
+ "wh"  'evil-window-left
+ "wl"  'evil-window-right
+ "wj"  'evil-window-down
+ "wk"  'evil-window-up
+ "wd"  'evil-window-delete
+ "wD"  'evil-window-delete
+ "wH"  'evil-window-move-far-left
+ "wL"  'evil-window-move-far-right
+ "wJ"  'evil-window-move-far-down
+ "wK"  'evil-window-move-far-up
+ "wm"  'window-maximize
+ "wu"  'winner-undo
+ "wr"  'winner-redo
+ )
+;; (my/leader-keys
+;;  "j"   '(:ignore t :which-key "jump")
+;;  "jj"  '(avy-goto-char :which-key "jump to char")
+;;  "jw"  '(avy-goto-word-0 :which-key "jump to word")
+;;  "jl"  '(avy-goto-line :which-key "jump to line"))
+#+end_src
+** Window selection (ace-window)
+#+begin_src elisp
+(use-package ace-window
+  :bind (("M-o" . ace-window))
+  :config
+  ;; (setq aw-keys '(?a ?s ?d ?f ?g ?h ?j ?k ?l))
+  )
+
+(my/leader-keys
+ "wD"  'ace-delete-window
+ "wW"  'ace-window
+ )
+#+end_src
+* File Management
+#+begin_src elisp
+(setq emacs-private-dir (concat (getenv "HOME") "/.emacs.d/configs/vanilla-emacs/"))
+(defun doom-project-browse (dir)
+  "Traverse a file structure starting linearly from DIR."
+  (let ((default-directory (file-truename (expand-file-name dir))))
+    (call-interactively
+     (cond ((doom-module-p :completion 'ivy)
+            #'counsel-find-file)
+           ((doom-module-p :completion 'helm)
+            #'helm-find-files)
+           (#'find-file)))))
+
+(defun doom/open-private-config ()
+  "Browse my `emacs-private-dir'."
+  (interactive)
+  (unless (file-directory-p emacs-private-dir)
+    (make-directory emacs-private-dir t))
+  (doom-project-browse emacs-private-dir))
+
+(my/leader-keys
+ "f"   '(:ignore f :which-key "files")
+ "fs"  'save-buffer
+ "ff"  'counsel-find-file
+ "fP"  'doom/open-private-config
+ "fP"  'doom/open-private-config
+ )
+#+end_src
+* Help
+#+begin_src elisp
+(my/leader-keys
+ "h"   '(:ignore h :which-key "help")
+ "hf"  'describe-function
+ "hv"  'describe-variable
+ "hk"  'describe-key
+ "hm"  'describe-mode
+ "hr"   '(:ignore hr :which-key "reload")
+ )
+#+end_src
+* File Browsing
+#+begin_src elisp
+(use-package dired
+  :defer 1
+  :ensure nil
+  :commands (dired dired-jump)
+  :config
+  (setq dired-listing-switches "-agho --group-directories-first"
+        dired-omit-files "^\\.[^.].*"
+        dired-omit-verbose nil)
+
+  (autoload 'dired-omit-mode "dired-x")
+
+  (add-hook 'dired-load-hook
+            (lambda ()
+              (interactive)
+              (dired-collapse)))
+
+  ;; (add-hook 'dired-mode-hook
+  ;;           (lambda ()
+  ;;             (interactive)
+  ;;             (dired-omit-mode 1)
+  ;;             (unless (or dw/is-termux
+  ;;                         (s-equals? "/gnu/store/" (expand-file-name default-directory)))
+  ;;               (all-the-icons-dired-mode 1))
+  ;;             (hl-line-mode 1)))
+
+  ;; (use-package dired-rainbow
+  ;;   :defer 2
+  ;;   :config
+  ;;   (dired-rainbow-define-chmod directory "#6cb2eb" "d.*")
+  ;;   (dired-rainbow-define html "#eb5286" ("css" "less" "sass" "scss" "htm" "html" "jhtm" "mht" "eml" "mustache" "xhtml"))
+  ;;   (dired-rainbow-define xml "#f2d024" ("xml" "xsd" "xsl" "xslt" "wsdl" "bib" "json" "msg" "pgn" "rss" "yaml" "yml" "rdata"))
+  ;;   (dired-rainbow-define document "#9561e2" ("docm" "doc" "docx" "odb" "odt" "pdb" "pdf" "ps" "rtf" "djvu" "epub" "odp" "ppt" "pptx"))
+  ;;   (dired-rainbow-define markdown "#ffed4a" ("org" "etx" "info" "markdown" "md" "mkd" "nfo" "pod" "rst" "tex" "textfile" "txt"))
+  ;;   (dired-rainbow-define database "#6574cd" ("xlsx" "xls" "csv" "accdb" "db" "mdb" "sqlite" "nc"))
+  ;;   (dired-rainbow-define media "#de751f" ("mp3" "mp4" "mkv" "MP3" "MP4" "avi" "mpeg" "mpg" "flv" "ogg" "mov" "mid" "midi" "wav" "aiff" "flac"))
+  ;;   (dired-rainbow-define image "#f66d9b" ("tiff" "tif" "cdr" "gif" "ico" "jpeg" "jpg" "png" "psd" "eps" "svg"))
+  ;;   (dired-rainbow-define log "#c17d11" ("log"))
+  ;;   (dired-rainbow-define shell "#f6993f" ("awk" "bash" "bat" "sed" "sh" "zsh" "vim"))
+  ;;   (dired-rainbow-define interpreted "#38c172" ("py" "ipynb" "rb" "pl" "t" "msql" "mysql" "pgsql" "sql" "r" "clj" "cljs" "scala" "js"))
+  ;;   (dired-rainbow-define compiled "#4dc0b5" ("asm" "cl" "lisp" "el" "c" "h" "c++" "h++" "hpp" "hxx" "m" "cc" "cs" "cp" "cpp" "go" "f" "for" "ftn" "f90" "f95" "f03" "f08" "s" "rs" "hi" "hs" "pyc" ".java"))
+  ;;   (dired-rainbow-define executable "#8cc4ff" ("exe" "msi"))
+  ;;   (dired-rainbow-define compressed "#51d88a" ("7z" "zip" "bz2" "tgz" "txz" "gz" "xz" "z" "Z" "jar" "war" "ear" "rar" "sar" "xpi" "apk" "xz" "tar"))
+  ;;   (dired-rainbow-define packaged "#faad63" ("deb" "rpm" "apk" "jad" "jar" "cab" "pak" "pk3" "vdf" "vpk" "bsp"))
+  ;;   (dired-rainbow-define encrypted "#ffed4a" ("gpg" "pgp" "asc" "bfe" "enc" "signature" "sig" "p12" "pem"))
+  ;;   (dired-rainbow-define fonts "#6cb2eb" ("afm" "fon" "fnt" "pfb" "pfm" "ttf" "otf"))
+  ;;   (dired-rainbow-define partition "#e3342f" ("dmg" "iso" "bin" "nrg" "qcow" "toast" "vcd" "vmdk" "bak"))
+  ;;   (dired-rainbow-define vc "#0074d9" ("git" "gitignore" "gitattributes" "gitmodules"))
+  ;;   (dired-rainbow-define-chmod executable-unix "#38c172" "-.*x.*"))
+
+
+  (use-package dired-ranger
+    :defer t)
+
+  (use-package dired-collapse
+    :defer t)
+
+  ;; (evil-collection-define-key 'normal 'dired-mode-map
+  ;;   "h" 'dired-single-up-directory
+  ;;   "H" 'dired-omit-mode
+  ;;   "l" 'dired-single-buffer
+  ;;   "y" 'dired-ranger-copy
+  ;;   "X" 'dired-ranger-move
+  ;;   "p" 'dired-ranger-paste))
+
+  ;; (defun my/dired-link (path)
+  ;;   (lexical-let ((target path))
+  ;;                (lambda () (interactive) (message "Path: %s" target) (dired target))))
+
+  (my/leader-keys
+   "d"   '(:ignore t :which-key "dired")
+   "dd"  '(dired :which-key "Here"))
+  )
+;; (my/leader-keys
+;;  "d"   '(:ignore t :which-key "dired")
+;;  "dd"  '(dired :which-key "Here")
+;;  "dh"  `(,(my/dired-link "~") :which-key "Home")
+;;  "dn"  `(,(my/dired-link "~/Notes") :which-key "Notes")
+;;  "do"  `(,(my/dired-link "~/Downloads") :which-key "Downloads")
+;;  "dp"  `(,(my/dired-link "~/Pictures") :which-key "Pictures")
+;;  "dv"  `(,(my/dired-link "~/Videos") :which-key "Videos")
+;;  ;; "d."  `(,(my/dired-link "~/.dotfiles") :which-key "dotfiles")
+;;  "de"  `(,(my/dired-link "~/.emacs.d") :which-key ".emacs.d"))
+#+end_src
+* Auto "Tangle" on Save
+#+begin_src elisp
+;; Since we don't want to disable org-confirm-babel-evaluate all
+;; of the time, do it around the after-save-hook
+(defun my/org-babel-tangle-dont-ask ()
+  ;; Dynamic scoping to the rescue
+  (let ((org-confirm-babel-evaluate nil))
+    (org-babel-tangle)))
+
+(add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'my/org-babel-tangle-dont-ask
+                                              'run-at-end 'only-in-org-mode)))
+#+end_src
+* Buffer Management
+;; (use-package bufler
+;;   :straight t
+;;   :bind (("C-M-j" . bufler-switch-buffer)
+;;          ("C-M-k" . bufler-workspace-frame-set))
+;;   :config
+;;   (evil-collection-define-key 'normal 'bufler-list-mode-map
+;;     (kbd "RET")   'bufler-list-buffer-switch
+;;     (kbd "M-RET") 'bufler-list-buffer-peek
+;;     "D"           'bufler-list-buffer-kill)
+
+;;   (setf bufler-groups
+;;         (bufler-defgroups
+;;          ;; Subgroup collecting all named workspaces.
+;;          (group (auto-workspace))
+;;          ;; Subgroup collecting buffers in a projectile project.
+;;          (group (auto-projectile))
+;;          ;; Grouping browser windows
+;;          (group
+;;           (group-or "Browsers"
+;;                     (name-match "Vimb" (rx bos "vimb"))
+;;                     (name-match "Qutebrowser" (rx bos "Qutebrowser"))
+;;                     (name-match "Chromium" (rx bos "Chromium"))))
+;;          (group
+;;           (group-or "Chat"
+;;                     (mode-match "Telega" (rx bos "telega-"))))
+;;          (group
+;;           ;; Subgroup collecting all `help-mode' and `info-mode' buffers.
+;;           (group-or "Help/Info"
+;;                     (mode-match "*Help*" (rx bos (or "help-" "helpful-")))
+;;                     ;; (mode-match "*Helpful*" (rx bos "helpful-"))
+;;                     (mode-match "*Info*" (rx bos "info-"))))
+;;          (group
+;;           ;; Subgroup collecting all special buffers (i.e. ones that are not
+;;           ;; file-backed), except `magit-status-mode' buffers (which are allowed to fall
+;;           ;; through to other groups, so they end up grouped with their project buffers).
+;;           (group-and "*Special*"
+;;                      (name-match "**Special**"
+;;                                  (rx bos "*" (or "Messages" "Warnings" "scratch" "Backtrace" "Pinentry") "*"))
+;;                      (lambda (buffer)
+;;                        (unless (or (funcall (mode-match "Magit" (rx bos "magit-status"))
+;;                                             buffer)
+;;                                    (funcall (mode-match "Dired" (rx bos "dired"))
+;;                                             buffer)
+;;                                    (funcall (auto-file) buffer))
+;;                          "*Special*"))))
+;;          ;; Group remaining buffers by major mode.
+;;          (auto-mode))))
+#+begin_src elisp
+#+end_src
+* Jumping with Avy
+#+begin_src elisp
+(use-package avy
+  :commands (avy-goto-char avy-goto-word-0 avy-goto-line))
+
+;; TODO add jump to function/class definitions etc
+(my/leader-keys
+ "j"   '(:ignore t :which-key "jump")
+ "jj"  '(avy-goto-char :which-key "jump to char")
+ "jw"  '(avy-goto-word-0 :which-key "jump to word")
+ "jl"  '(avy-goto-line :which-key "jump to line"))
+#+end_src
+* Counsel
+#+begin_src elisp
+(use-package counsel
+  :bind (("M-x" . counsel-M-x)
+         ("C-x b" . counsel-ibuffer)
+         ("C-x C-f" . counsel-find-file)
+         :map minibuffer-local-map
+         ("C-r" . 'counsel-minibuffer-history)))
+#+end_src
+* Helpful
+Helpful is an alternative to the built-in Emacs help that provides much more contextual information.
+Bind the describe-* functions to the improved helpful-* and counsel-* versions.
+#+begin_src elisp
+(use-package helpful
+  :custom
+  (counsel-describe-function-function #'helpful-callable)
+  (counsel-describe-variable-function #'helpful-variable)
+  :bind
+  ([remap describe-function] . counsel-describe-function)
+  ([remap describe-command] . helpful-command)
+  ([remap describe-variable] . counsel-describe-variable)
+  ([remap describe-key] . helpful-key))
+#+end_src
+
+* Keymaps with Hydra
+#+begin_src elisp :tangle no
+(use-package hydra
+  :defer 1)
+#+end_src
+
+* Editing Configuration
+** Commenting Lines
+#+begin_src emacs-lisp
+;; (use-package evil-nerd-commenter
+;;   :bind ("M-/" . evilnc-comment-or-uncomment-lines))
+(use-package evil-nerd-commenter)
+
+;; Emacs key bindings
+;; (global-set-key (kbd "M-;") 'evilnc-comment-or-uncomment-lines)
+;; (global-set-key (kbd "C-c l") 'evilnc-quick-comment-or-uncomment-to-the-line)
+;; (global-set-key (kbd "C-c c") 'evilnc-copy-and-comment-lines)
+;; (global-set-key (kbd "C-c p") 'evilnc-comment-or-uncomment-paragraphs)
+
+(my/leader-keys
+ "c"   '(:ignore c :which-key "comments")
+ "ci" 'evilnc-comment-or-uncomment-lines
+ "cl" 'evilnc-quick-comment-or-uncomment-to-the-line
+ "ll" 'evilnc-quick-comment-or-uncomment-to-the-line
+ "cc" 'evilnc-copy-and-comment-lines
+ "cp" 'evilnc-comment-or-uncomment-paragraphs
+ "cr" 'comment-or-uncomment-region
+ "cv" 'evilnc-toggle-invert-comment-line-by-line
+ "."  'evilnc-copy-and-comment-operator
+ "\\" 'evilnc-comment-operator ; if you prefer backslash key
+ )
+#+end_src
+** Auto Clean Whitespace (butler)
+#+begin_src emacs-lisp
+(use-package ws-butler
+  :hook ((text-mode . ws-butler-mode)
+         (prog-mode . ws-butler-mode)))
+#+end_src
+* Development
+** Magit
+#+begin_src elisp
+(use-package magit
+  :commands (magit-status magit-get-current-branch)
+  :custom
+  (magit-display-buffer-function #'magit-display-buffer-same-window-except-diff-v1))
+
+(use-package evil-magit
+  :after magit)
+
+;; Add a super-convenient global binding for magit-status since
+;; I use it 8 million times a day
+(global-set-key (kbd "C-M-;") 'magit-status)
+
+(my/leader-keys
+ "g"   '(:ignore t :which-key "git")
+ "gs"  'magit-status
+ "gd"  'magit-diff-unstaged
+ "gc"  'magit-branch-or-checkout
+ "gl"   '(:ignore t :which-key "log")
+ "glc" 'magit-log-current
+ "glf" 'magit-log-buffer-file
+ "gb"  'magit-branch
+ "gP"  'magit-push-current
+ "gp"  'magit-pull-branch
+ "gf"  'magit-fetch
+ "gF"  'magit-fetch-all
+ "gr"  'magit-rebase)
+#+end_src
+
+** Projectile
+** Languages
+*** Python
