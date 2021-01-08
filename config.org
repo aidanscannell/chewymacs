@@ -69,6 +69,12 @@ Load use-package to manage package configuration.
 ;;   )
 #+end_src
 * Keybindings
+** Escape cancels everything
+Let escape quit things like =M-x= etc.
+#+begin_src elisp
+;; Make ESC quit prompts
+(global-set-key (kbd "<escape>") 'keyboard-escape-quit)
+#+end_src
 ** Meta
 #+begin_src elisp
 ;; (global-set-key (kbd "") 'counsel-M-x)
@@ -105,12 +111,13 @@ Load use-package to manage package configuration.
   (evil-set-initial-state 'messages-buffer-mode 'normal)
   (evil-set-initial-state 'dashboard-mode 'normal))
 
-;; (use-package evil-collection
-;;   :after evil
-;;   ;; :custom
-;;   ;; (evil-collection-outline-bind-tab-p nil)
-;;   :config
-;;   (evil-collection-init))
+;; Gives evil keybindings for other modes, e.g. dired
+(use-package evil-collection
+  :after evil
+  ;; :custom
+  ;; (evil-collection-outline-bind-tab-p nil)
+  :config
+  (evil-collection-init))
 #+end_src
 
 ** Which Key
@@ -120,7 +127,9 @@ Load use-package to manage package configuration.
   :init (which-key-mode)
   :diminish which-key-mode
   :config
-  (setq which-key-idle-delay 0.2))
+  (setq which-key-idle-delay 0.2)
+  (setq which-key-idle-secondary-delay 0.05)
+)
 #+end_src
 
 ** Leader Bindings (general.el)
@@ -138,12 +147,36 @@ Use [[https://github.com/noctuid/general.el][general.el]] to define prefixed key
 
   (my/leader-keys
    ;; ":" '(M-x :which-key "counsel-M-x")
-   ":" '(counsel-M-x :which-key "counsel-M-x")
+   ":" '(helm-M-x :which-key "M-x")
+   "SPC" '(helm-M-x :which-key "M-x")
    "t"  '(:ignore t :which-key "toggles")
    "tt" '(counsel-load-theme :which-key "choose theme"))
   )
 #+end_src
 
+** Quitting Emacs
+#+begin_src elisp
+  (use-package restart-emacs)
+
+  (defun my/kill-frame ()
+    "Kill server buffer and hide the main Emacs window"
+    (interactive)
+    (condition-case nil
+	(delete-frame nil 1)
+      (error
+       (make-frame-invisible nil 1))))
+
+  ;; TODO add sessions restoration using dektop 
+  (my/leader-keys
+   "q"   '(:ignore q :which-key "quit")
+   "qf"  'my/kill-frame
+   "qq"  'save-buffers-kill-terminal
+   "qQ"  'evil-quit-all-with-error-code
+   "qr"  'restart-emacs
+   "qn"  'restart-emacs-start-new-emacs
+   "qR"  'restart-emacs
+   )
+#+end_src
 * General Configuration
 ** User Interface
 #+begin_src elisp
@@ -161,11 +194,17 @@ Use [[https://github.com/noctuid/general.el][general.el]] to define prefixed key
 
 (global-display-line-numbers-mode t)
 #+end_src
-
+Set frame transparency.
+#+begin_src elisp
+(set-frame-parameter (selected-frame) 'alpha '(90 . 90))
+(add-to-list 'default-frame-alist '(alpha . (90 . 90)))
+#+end_src
 ** Theme
 #+begin_src elisp
 (use-package doom-themes
-  :init (load-theme 'doom-dracula t))
+  :init (load-theme 'doom-nova t))
+  ;; :init (load-theme 'doom-nord t))
+  ;; :init (load-theme 'doom-dracula t))
 ;; :init (load-theme 'doom-laserwave t))
 #+end_src
 ** Modeline
@@ -200,32 +239,192 @@ Use [[https://github.com/noctuid/general.el][general.el]] to define prefixed key
 ;; display correctly:
 ;;
 ;; M-x all-the-icons-install-fonts
-;; (use-package all-the-icons)
+(use-package all-the-icons)
+#+end_src
+* Helm
+#+begin_src elisp
+  (use-package helm
+    :bind (
+	   ("C-c h" . helm-command-prefix)
+	   ("M-x" . helm-M-x)
+	   ;; ("C-x b" . counsel-ibuffer)
+	   ("C-x b" . helm-buffers-list)
+	   ("C-x C-f" . helm-find-file)
+	   ("TAB" . helm-execute-persistant-action)
+	   ("C-l" . helm-execute-persistant-action)
+	   ("C-z" . helm-select-action)
+	   :map helm-map
+	   ("C-r" . 'helm-minibuffer-history)
+	   ;; :map helm-minibuffer-map
+	   ("C-j" . helm-next-line)
+	   ("C-k" . helm-previous-line)
+
+	   )
+    :config
+      (setq helm-recentf-fuzzy-match t
+	  helm-locate-fuzzy-match nil ;; locate fuzzy is worthless
+	  helm-M-x-fuzzy-match t
+	  helm-buffers-fuzzy-matching t
+	  helm-semantic-fuzzy-match t
+	  helm-apropos-fuzzy-match t
+	  helm-imenu-fuzzy-match t
+	  helm-lisp-fuzzy-completion t
+	  helm-completion-in-region-fuzzy-match t)
+
+(global-unset-key (kbd "C-x c"))
+
+;; open helm buffer inside current window, don't occupy the entire other window
+(setq helm-split-window-in-side-p t)
+;; move to end or beginning of source when reaching top or bottom of source.
+(setq helm-move-to-line-cycle-in-source t)
+
+(helm-autoresize-mode)
+;; These numbers are percentages
+(setq helm-autoresize-min-height 20
+      helm-autoresize-max-height 40)
+
+  )
 #+end_src
 * Ivy
 #+begin_src elisp
-(use-package ivy
-  :diminish
-  :bind (("C-s" . swiper)
-         :map ivy-minibuffer-map
-         ("TAB" . ivy-alt-done)
-         ("C-l" . ivy-alt-done)
-         ("C-j" . ivy-next-line)
-         ("C-k" . ivy-previous-line)
-         :map ivy-switch-buffer-map
-         ("C-k" . ivy-previous-line)
-         ("C-l" . ivy-done)
-         ("C-d" . ivy-switch-buffer-kill)
-         :map ivy-reverse-i-search-map
-         ("C-k" . ivy-previous-line)
-         ("C-d" . ivy-reverse-i-search-kill))
-  :config
-  (ivy-mode 1))
+;; (use-package ivy
+;;   :diminish
+;;   :bind (("C-s" . swiper)
+;;          :map ivy-minibuffer-map
+;;          ("TAB" . ivy-alt-done)
+;;          ("C-l" . ivy-alt-done)
+;;          ("C-j" . ivy-next-line)
+;;          ("C-k" . ivy-previous-line)
+;;          :map ivy-switch-buffer-map
+;;          ("C-k" . ivy-previous-line)
+;;          ("C-l" . ivy-done)
+;;          ("C-d" . ivy-switch-buffer-kill)
+;;          :map ivy-reverse-i-search-map
+;;          ("C-k" . ivy-previous-line)
+;;          ("C-d" . ivy-reverse-i-search-kill))
+;;   :config
+;;   (ivy-mode 1))
 #+end_src
 
-#+RESULTS:
-: ivy-reverse-i-search-kill
+** Counsel
+#+begin_src elisp
+;; (use-package counsel
+;;   :bind (("M-x" . counsel-M-x)
+;;          ("C-x b" . counsel-ibuffer)
+;;          ("C-x C-f" . counsel-find-file)
+;;          :map minibuffer-local-map
+;;          ("C-r" . 'counsel-minibuffer-history)))
+#+end_src
+* Jumping with Avy
+#+begin_src elisp
+(use-package find-func)
+#+end_src
+#+begin_src elisp
+(use-package avy
+  :commands (avy-goto-char avy-goto-word-0 avy-goto-line))
 
+(my/leader-keys
+ "j"   '(:ignore t :which-key "jump")
+ "jj"  '(avy-goto-char-2 :which-key "jump to char")
+ "jw"  '(avy-goto-word-0 :which-key "jump to word")
+ "jl"  '(avy-goto-line :which-key "jump to line")
+ "ju"  'avy-goto-url
+ "ji"  'helm-semantic-or-imenu
+ ;; "ji"  'helm-jump-in-buffer
+ "jI"  'helm-imenu-in-all-buffers
+ "jc"  'goto-last-change
+ "jf"  'find-function
+ "jv"  'find-variable
+ )
+#+end_src
+* Buffer Management
+#+begin_src elisp
+(use-package bufler
+  :bind (("C-M-j" . bufler-switch-buffer)
+         ("C-M-k" . bufler-workspace-frame-set))
+  :config
+  (evil-collection-define-key 'normal 'bufler-list-mode-map
+    (kbd "RET")   'bufler-list-buffer-switch
+    (kbd "M-RET") 'bufler-list-buffer-peek
+    "D"           'bufler-list-buffer-kill)
+
+  (setf bufler-groups
+        (bufler-defgroups
+         ;; Subgroup collecting all named workspaces.
+         (group (auto-workspace))
+         ;; Subgroup collecting buffers in a projectile project.
+         (group (auto-projectile))
+         ;; Grouping browser windows
+         (group
+          (group-or "Browsers"
+                    (name-match "Vimb" (rx bos "vimb"))
+                    (name-match "Qutebrowser" (rx bos "Qutebrowser"))
+                    (name-match "Chromium" (rx bos "Chromium"))))
+         (group
+          (group-or "Chat"
+                    (mode-match "Telega" (rx bos "telega-"))))
+         (group
+          ;; Subgroup collecting all `help-mode' and `info-mode' buffers.
+          (group-or "Help/Info"
+                    (mode-match "*Help*" (rx bos (or "help-" "helpful-")))
+                    ;; (mode-match "*Helpful*" (rx bos "helpful-"))
+                    (mode-match "*Info*" (rx bos "info-"))))
+         (group
+          ;; Subgroup collecting all special buffers (i.e. ones that are not
+          ;; file-backed), except `magit-status-mode' buffers (which are allowed to fall
+          ;; through to other groups, so they end up grouped with their project buffers).
+          (group-and "*Special*"
+                     (name-match "**Special**"
+                                 (rx bos "*" (or "Messages" "Warnings" "scratch" "Backtrace" "Pinentry") "*"))
+                     (lambda (buffer)
+                       (unless (or (funcall (mode-match "Magit" (rx bos "magit-status"))
+                                            buffer)
+                                   (funcall (mode-match "Dired" (rx bos "dired"))
+                                            buffer)
+                                   (funcall (auto-file) buffer))
+                         "*Special*"))))
+         ;; Group remaining buffers by major mode.
+         (auto-mode))))
+
+(defun my/switch-to-messages-buffer (&optional arg)
+  "Switch to the `*Messages*' buffer.
+if prefix argument ARG is given, switch to it in an other, possibly new window."
+  (interactive "P")
+  (with-current-buffer (messages-buffer)
+    (goto-char (point-max))
+    (if arg
+        (switch-to-buffer-other-window (current-buffer))
+      (switch-to-buffer (current-buffer)))
+    (when (evil-evilified-state-p)
+      (evil-normal-state))))
+(defun my/switch-to-scratch-buffer (&optional arg)
+  "Switch to the `*scratch*' buffer, creating it first if needed.
+if prefix argument ARG is given, switch to it in an other, possibly new window."
+  (interactive "P")
+  (let ((exists (get-buffer "*scratch*")))
+    (if arg
+        (switch-to-buffer-other-window (get-buffer-create "*scratch*"))
+      (switch-to-buffer (get-buffer-create "*scratch*")))))
+
+(my/leader-keys
+ "l"   '(:ignore l :which-key "layers")
+ "ll"  'bufler-workspace-frame-set
+)
+
+(my/leader-keys
+ "b"   '(:ignore b :which-key "buffers")
+ "bb"  'bufler-switch-buffer
+ "bB"  'bufler-list
+ "bp"  'previous-buffer
+ "bn"  'next-buffer
+ "bk"  'kill-current-buffer
+ "bd"  'kill-current-buffer
+ "bd"  'kill-current-buffer
+ "bm"  'my/switch-to-messages-buffer
+ "bs"  'my/switch-to-scratch-buffer
+ "bN"  'evil-buffer-new
+)
+#+end_src
 * Window Management
 ** Window history (undo)
 #+begin_src elisp
@@ -297,131 +496,203 @@ Use [[https://github.com/noctuid/general.el][general.el]] to define prefixed key
  )
 #+end_src
 * File Management
+** Open Private Config
 #+begin_src elisp
-(setq emacs-private-dir (concat (getenv "HOME") "/.emacs.d/configs/vanilla-emacs/"))
-(defun doom-project-browse (dir)
-  "Traverse a file structure starting linearly from DIR."
-  (let ((default-directory (file-truename (expand-file-name dir))))
-    (call-interactively
-     (cond ((doom-module-p :completion 'ivy)
-            #'counsel-find-file)
-           ((doom-module-p :completion 'helm)
-            #'helm-find-files)
-           (#'find-file)))))
+(setq my/emacs-private-dir (concat (getenv "HOME") "/.emacs.d/configs/vanilla-emacs/"))
+(setq my/emacs-private-org-config (concat my/emacs-private-dir "/config.org"))
+(setq my/emacs-private-config (concat my/emacs-private-dir "/init.el"))
 
-(defun doom/open-private-config ()
-  "Browse my `emacs-private-dir'."
+(defun my/open-private-org-config ()
+  "Open `my/emacs-private-org-config'."
   (interactive)
-  (unless (file-directory-p emacs-private-dir)
-    (make-directory emacs-private-dir t))
-  (doom-project-browse emacs-private-dir))
+  (find-file-at-point my/emacs-private-org-config))
+
+(defun my/open-private-config-dir ()
+  "Open `my/emacs-private-dir' in dired."
+  (interactive)
+  (dired my/emacs-private-dir))
+
 
 (my/leader-keys
  "f"   '(:ignore f :which-key "files")
  "fs"  'save-buffer
  "ff"  'counsel-find-file
- "fP"  'doom/open-private-config
- "fP"  'doom/open-private-config
+ "fr"  'helm-recentf
+ "fp"  'my/open-private-org-config
+ "fP"  'my/open-private-config-dir
  )
 #+end_src
+** dired
+- dired-omit-mode hides uninteresting files such as backup files and AutoSave files.
+- all-the-icons-dired adds icons to dired.
+- dired-rainbow colours text depending on file extensions.
+- dired-single used the same buffer when visiting new directories instead of creating a new one.
+#+begin_src elisp
+  (use-package dired
+    :defer 1
+    :ensure nil
+    :commands (dired dired-jump)
+    :config
+    ;; change ls to gls for grouping by directories on osx
+    (setq insert-directory-program "gls" dired-use-ls-dired t)
+    (setq dired-listing-switches "-agho --group-directories-first"
+	  dired-omit-files "^\\.[^.].*"
+	  dired-omit-verbose nil)
+
+    (autoload 'dired-omit-mode "dired-x")
+
+    (add-hook 'dired-load-hook
+	      (lambda ()
+		(interactive)
+		(dired-collapse)))
+
+    (use-package all-the-icons-dired)
+    ;; (add-hook 'dired-mode-hook
+    ;;           (lambda ()
+    ;;             (interactive)
+    ;;             (dired-omit-mode 1)
+    ;;             ;; (unless (or dw/is-termux
+    ;;             ;;             (s-equals? "/gnu/store/" (expand-file-name default-directory)))
+    ;;             ;;   (all-the-icons-dired-mode 1))
+    ;;             (all-the-icons-dired-mode 1)
+    ;;             (hl-line-mode 1)))
+    ;; TODO disable all-the-icons-dired-mode in terminal emacs
+    (add-hook 'dired-mode-hook
+	      (lambda ()
+		(interactive)
+		(dired-omit-mode 1)
+		(all-the-icons-dired-mode 1)
+		;; (dired-rainbow-mode 1)
+		(hl-line-mode 1)))
+
+    (use-package dired-rainbow
+      :defer 2
+      :config
+      (progn
+	(dired-rainbow-define-chmod directory "#6cb2eb" "d.*")
+	(dired-rainbow-define html "#eb5286" ("css" "less" "sass" "scss" "htm" "html" "jhtm" "mht" "eml" "mustache" "xhtml"))
+	(dired-rainbow-define xml "#f2d024" ("xml" "xsd" "xsl" "xslt" "wsdl" "bib" "json" "msg" "pgn" "rss" "yaml" "yml" "rdata"))
+	(dired-rainbow-define document "#9561e2" ("docm" "doc" "docx" "odb" "odt" "pdb" "pdf" "ps" "rtf" "djvu" "epub" "odp" "ppt" "pptx"))
+	(dired-rainbow-define markdown "#ffed4a" ("org" "etx" "info" "markdown" "md" "mkd" "nfo" "pod" "rst" "tex" "textfile" "txt"))
+	(dired-rainbow-define database "#6574cd" ("xlsx" "xls" "csv" "accdb" "db" "mdb" "sqlite" "nc"))
+	(dired-rainbow-define media "#de751f" ("mp3" "mp4" "mkv" "MP3" "MP4" "avi" "mpeg" "mpg" "flv" "ogg" "mov" "mid" "midi" "wav" "aiff" "flac"))
+	(dired-rainbow-define image "#f66d9b" ("tiff" "tif" "cdr" "gif" "ico" "jpeg" "jpg" "png" "psd" "eps" "svg"))
+	(dired-rainbow-define log "#c17d11" ("log"))
+	(dired-rainbow-define shell "#f6993f" ("awk" "bash" "bat" "sed" "sh" "zsh" "vim"))
+	(dired-rainbow-define interpreted "#38c172" ("py" "ipynb" "rb" "pl" "t" "msql" "mysql" "pgsql" "sql" "r" "clj" "cljs" "scala" "js"))
+	(dired-rainbow-define compiled "#4dc0b5" ("asm" "cl" "lisp" "el" "c" "h" "c++" "h++" "hpp" "hxx" "m" "cc" "cs" "cp" "cpp" "go" "f" "for" "ftn" "f90" "f95" "f03" "f08" "s" "rs" "hi" "hs" "pyc" ".java"))
+	(dired-rainbow-define executable "#8cc4ff" ("exe" "msi"))
+	(dired-rainbow-define compressed "#51d88a" ("7z" "zip" "bz2" "tgz" "txz" "gz" "xz" "z" "Z" "jar" "war" "ear" "rar" "sar" "xpi" "apk" "xz" "tar"))
+	(dired-rainbow-define packaged "#faad63" ("deb" "rpm" "apk" "jad" "jar" "cab" "pak" "pk3" "vdf" "vpk" "bsp"))
+	(dired-rainbow-define encrypted "#ffed4a" ("gpg" "pgp" "asc" "bfe" "enc" "signature" "sig" "p12" "pem"))
+	(dired-rainbow-define fonts "#6cb2eb" ("afm" "fon" "fnt" "pfb" "pfm" "ttf" "otf"))
+	(dired-rainbow-define partition "#e3342f" ("dmg" "iso" "bin" "nrg" "qcow" "toast" "vcd" "vmdk" "bak"))
+	(dired-rainbow-define vc "#0074d9" ("git" "gitignore" "gitattributes" "gitmodules"))
+	(dired-rainbow-define-chmod executable-unix "#38c172" "-.*x.*")))
+
+    (use-package dired-single
+      :defer t)
+
+    (use-package dired-ranger
+      :defer t)
+
+    (use-package dired-collapse
+      :defer t)
+
+    (evil-collection-define-key 'normal 'dired-mode-map
+      "h" 'dired-single-up-directory
+      "H" 'dired-omit-mode
+      "l" 'dired-single-buffer
+      "y" 'dired-ranger-copy
+      "X" 'dired-ranger-move
+      "p" 'dired-ranger-paste))
+
+  ;; (defun my/dired-link (path)
+  ;;   (let ((target path))
+  ;;   (interactive)
+  ;;   (message "Path: %s" path)
+  ;; (lambda () (interactive) (message "Path: %s" target) (dired target))))
+
+  (defun my/open-config () (interactive) (dired "/Users/aidanscannell/.config"))
+  (defun my/open-python-projects () (interactive) (dired "/Users/aidanscannell/Developer/python-projects"))
+  (defun my/open-home () (interactive) (dired "/Users/aidanscannell"))
+  (defun my/open-documents () (interactive) (dired "/Users/aidanscannell/Documents"))
+  (defun my/open-emacs () (interactive) (dired my/emacs-private-dir))
+  (defun my/open-downloads () (interactive) (dired "/Users/aidanscannell/Downloads"))
+  (defun my/open-notes () (interactive) (dired "/Users/aidanscannell/Dropbox/org"))
+
+  (my/leader-keys
+   "d"   '(:ignore t :which-key "dired")
+   "dd"  '(dired-jump :which-key "here")
+   "dc"  '(my/open-config :which-key ".config")
+   "de"  '(my/open-emacs :which-key "emacs")
+   "dp"  '(my/open-python-projects :which-key "python-projects")
+   "dD"  '(my/open-documents :which-key "documents")
+   "do"  '(my/open-downloads :which-key "downloads")
+   "dn"  '(my/open-notes :which-key "notes")
+   "dh"  '(my/open-home :which-key "~/")
+   )
+  ;; (my/leader-keys
+  ;;  "d"   '(:ignore t :which-key "dired")
+  ;;  "dd"  '(dired :which-key "Here")
+  ;;  "dh"  `(,(my/dired-link "~") :which-key "Home")
+  ;;  "dn"  `(,(my/dired-link "~/Notes") :which-key "Notes")
+  ;;  "do"  `(,(my/dired-link "~/Downloads") :which-key "Downloads")
+  ;;  "dp"  `(,(my/dired-link "~/Pictures") :which-key "Pictures")
+  ;;  "dv"  `(,(my/dired-link "~/Videos") :which-key "Videos")
+  ;;  ;; "d."  `(,(my/dired-link "~/.dotfiles") :which-key "dotfiles")
+  ;;  "de"  `(,(my/dired-link "~/.emacs.d") :which-key ".emacs.d"))
+#+end_src
 * Help
+  - Functions for reloading (and tangling+reloading) my Emacs config.
+#+begin_src elisp
+(defun my/reload-emacs-private-config ()
+  "Reload my/emacs-private-config file without restarting Emacs."
+  (interactive)
+  (load-file my/emacs-private-config))
+
+(defun my/tangle-and-reload-emacs-private-config ()
+  "Reload my/emacs-private-config file without restarting Emacs."
+  (interactive)
+  (org-babel-tangle my/emacs-private-org-config)
+  (my/reload-emacs-private-config))
+#+end_src
+- Map the describe functions under the "h" (help) prefix.
+- apropos can be used to show all meaningful Lisp symbols whose names match a PATTERN.
 #+begin_src elisp
 (my/leader-keys
  "h"   '(:ignore h :which-key "help")
+ "ha"  'apropos
+ "hi"  'info
  "hf"  'describe-function
  "hv"  'describe-variable
  "hk"  'describe-key
  "hm"  'describe-mode
- "hr"   '(:ignore hr :which-key "reload")
+ "hr"  '(my/reload-emacs-private-config :which-key "reload config")
+ "hR"  '(my/tangle-and-reload-emacs-private-config :which-key "tangle+reload config")
  )
 #+end_src
-* File Browsing
+* Terminal
+** vterm
+vterm is a fully-fledged terminal emulator within Emacs which I can use instead of an external terminal emulator.
 #+begin_src elisp
-(use-package dired
-  :defer 1
-  :ensure nil
-  :commands (dired dired-jump)
+
+(use-package vterm
+  :commands vterm
   :config
-  (setq dired-listing-switches "-agho --group-directories-first"
-        dired-omit-files "^\\.[^.].*"
-        dired-omit-verbose nil)
+  (setq vterm-max-scrollback 10000) ;; limit the number of lines in buffer to prevent performance issues
+)
 
-  (autoload 'dired-omit-mode "dired-x")
+(my/leader-keys
+ "o"   '(:ignore o :which-key "open")
+ "ot"  'vterm
+ "oT"  'vterm-other-window
 
-  (add-hook 'dired-load-hook
-            (lambda ()
-              (interactive)
-              (dired-collapse)))
-
-  ;; (add-hook 'dired-mode-hook
-  ;;           (lambda ()
-  ;;             (interactive)
-  ;;             (dired-omit-mode 1)
-  ;;             (unless (or dw/is-termux
-  ;;                         (s-equals? "/gnu/store/" (expand-file-name default-directory)))
-  ;;               (all-the-icons-dired-mode 1))
-  ;;             (hl-line-mode 1)))
-
-  ;; (use-package dired-rainbow
-  ;;   :defer 2
-  ;;   :config
-  ;;   (dired-rainbow-define-chmod directory "#6cb2eb" "d.*")
-  ;;   (dired-rainbow-define html "#eb5286" ("css" "less" "sass" "scss" "htm" "html" "jhtm" "mht" "eml" "mustache" "xhtml"))
-  ;;   (dired-rainbow-define xml "#f2d024" ("xml" "xsd" "xsl" "xslt" "wsdl" "bib" "json" "msg" "pgn" "rss" "yaml" "yml" "rdata"))
-  ;;   (dired-rainbow-define document "#9561e2" ("docm" "doc" "docx" "odb" "odt" "pdb" "pdf" "ps" "rtf" "djvu" "epub" "odp" "ppt" "pptx"))
-  ;;   (dired-rainbow-define markdown "#ffed4a" ("org" "etx" "info" "markdown" "md" "mkd" "nfo" "pod" "rst" "tex" "textfile" "txt"))
-  ;;   (dired-rainbow-define database "#6574cd" ("xlsx" "xls" "csv" "accdb" "db" "mdb" "sqlite" "nc"))
-  ;;   (dired-rainbow-define media "#de751f" ("mp3" "mp4" "mkv" "MP3" "MP4" "avi" "mpeg" "mpg" "flv" "ogg" "mov" "mid" "midi" "wav" "aiff" "flac"))
-  ;;   (dired-rainbow-define image "#f66d9b" ("tiff" "tif" "cdr" "gif" "ico" "jpeg" "jpg" "png" "psd" "eps" "svg"))
-  ;;   (dired-rainbow-define log "#c17d11" ("log"))
-  ;;   (dired-rainbow-define shell "#f6993f" ("awk" "bash" "bat" "sed" "sh" "zsh" "vim"))
-  ;;   (dired-rainbow-define interpreted "#38c172" ("py" "ipynb" "rb" "pl" "t" "msql" "mysql" "pgsql" "sql" "r" "clj" "cljs" "scala" "js"))
-  ;;   (dired-rainbow-define compiled "#4dc0b5" ("asm" "cl" "lisp" "el" "c" "h" "c++" "h++" "hpp" "hxx" "m" "cc" "cs" "cp" "cpp" "go" "f" "for" "ftn" "f90" "f95" "f03" "f08" "s" "rs" "hi" "hs" "pyc" ".java"))
-  ;;   (dired-rainbow-define executable "#8cc4ff" ("exe" "msi"))
-  ;;   (dired-rainbow-define compressed "#51d88a" ("7z" "zip" "bz2" "tgz" "txz" "gz" "xz" "z" "Z" "jar" "war" "ear" "rar" "sar" "xpi" "apk" "xz" "tar"))
-  ;;   (dired-rainbow-define packaged "#faad63" ("deb" "rpm" "apk" "jad" "jar" "cab" "pak" "pk3" "vdf" "vpk" "bsp"))
-  ;;   (dired-rainbow-define encrypted "#ffed4a" ("gpg" "pgp" "asc" "bfe" "enc" "signature" "sig" "p12" "pem"))
-  ;;   (dired-rainbow-define fonts "#6cb2eb" ("afm" "fon" "fnt" "pfb" "pfm" "ttf" "otf"))
-  ;;   (dired-rainbow-define partition "#e3342f" ("dmg" "iso" "bin" "nrg" "qcow" "toast" "vcd" "vmdk" "bak"))
-  ;;   (dired-rainbow-define vc "#0074d9" ("git" "gitignore" "gitattributes" "gitmodules"))
-  ;;   (dired-rainbow-define-chmod executable-unix "#38c172" "-.*x.*"))
-
-
-  (use-package dired-ranger
-    :defer t)
-
-  (use-package dired-collapse
-    :defer t)
-
-  ;; (evil-collection-define-key 'normal 'dired-mode-map
-  ;;   "h" 'dired-single-up-directory
-  ;;   "H" 'dired-omit-mode
-  ;;   "l" 'dired-single-buffer
-  ;;   "y" 'dired-ranger-copy
-  ;;   "X" 'dired-ranger-move
-  ;;   "p" 'dired-ranger-paste))
-
-  ;; (defun my/dired-link (path)
-  ;;   (lexical-let ((target path))
-  ;;                (lambda () (interactive) (message "Path: %s" target) (dired target))))
-
-  (my/leader-keys
-   "d"   '(:ignore t :which-key "dired")
-   "dd"  '(dired :which-key "Here"))
-  )
-;; (my/leader-keys
-;;  "d"   '(:ignore t :which-key "dired")
-;;  "dd"  '(dired :which-key "Here")
-;;  "dh"  `(,(my/dired-link "~") :which-key "Home")
-;;  "dn"  `(,(my/dired-link "~/Notes") :which-key "Notes")
-;;  "do"  `(,(my/dired-link "~/Downloads") :which-key "Downloads")
-;;  "dp"  `(,(my/dired-link "~/Pictures") :which-key "Pictures")
-;;  "dv"  `(,(my/dired-link "~/Videos") :which-key "Videos")
-;;  ;; "d."  `(,(my/dired-link "~/.dotfiles") :which-key "dotfiles")
-;;  "de"  `(,(my/dired-link "~/.emacs.d") :which-key ".emacs.d"))
+)
 #+end_src
 * Auto "Tangle" on Save
-#+begin_src elisp
+  This function auto tangles org mode source blocks when a file is saved. This is helpful for tangling this literate config file (upon save).
+  #+begin_src elisp
 ;; Since we don't want to disable org-confirm-babel-evaluate all
 ;; of the time, do it around the after-save-hook
 (defun my/org-babel-tangle-dont-ask ()
@@ -430,79 +701,8 @@ Use [[https://github.com/noctuid/general.el][general.el]] to define prefixed key
     (org-babel-tangle)))
 
 (add-hook 'org-mode-hook (lambda () (add-hook 'after-save-hook #'my/org-babel-tangle-dont-ask
-                                              'run-at-end 'only-in-org-mode)))
-#+end_src
-* Buffer Management
-;; (use-package bufler
-;;   :straight t
-;;   :bind (("C-M-j" . bufler-switch-buffer)
-;;          ("C-M-k" . bufler-workspace-frame-set))
-;;   :config
-;;   (evil-collection-define-key 'normal 'bufler-list-mode-map
-;;     (kbd "RET")   'bufler-list-buffer-switch
-;;     (kbd "M-RET") 'bufler-list-buffer-peek
-;;     "D"           'bufler-list-buffer-kill)
-
-;;   (setf bufler-groups
-;;         (bufler-defgroups
-;;          ;; Subgroup collecting all named workspaces.
-;;          (group (auto-workspace))
-;;          ;; Subgroup collecting buffers in a projectile project.
-;;          (group (auto-projectile))
-;;          ;; Grouping browser windows
-;;          (group
-;;           (group-or "Browsers"
-;;                     (name-match "Vimb" (rx bos "vimb"))
-;;                     (name-match "Qutebrowser" (rx bos "Qutebrowser"))
-;;                     (name-match "Chromium" (rx bos "Chromium"))))
-;;          (group
-;;           (group-or "Chat"
-;;                     (mode-match "Telega" (rx bos "telega-"))))
-;;          (group
-;;           ;; Subgroup collecting all `help-mode' and `info-mode' buffers.
-;;           (group-or "Help/Info"
-;;                     (mode-match "*Help*" (rx bos (or "help-" "helpful-")))
-;;                     ;; (mode-match "*Helpful*" (rx bos "helpful-"))
-;;                     (mode-match "*Info*" (rx bos "info-"))))
-;;          (group
-;;           ;; Subgroup collecting all special buffers (i.e. ones that are not
-;;           ;; file-backed), except `magit-status-mode' buffers (which are allowed to fall
-;;           ;; through to other groups, so they end up grouped with their project buffers).
-;;           (group-and "*Special*"
-;;                      (name-match "**Special**"
-;;                                  (rx bos "*" (or "Messages" "Warnings" "scratch" "Backtrace" "Pinentry") "*"))
-;;                      (lambda (buffer)
-;;                        (unless (or (funcall (mode-match "Magit" (rx bos "magit-status"))
-;;                                             buffer)
-;;                                    (funcall (mode-match "Dired" (rx bos "dired"))
-;;                                             buffer)
-;;                                    (funcall (auto-file) buffer))
-;;                          "*Special*"))))
-;;          ;; Group remaining buffers by major mode.
-;;          (auto-mode))))
-#+begin_src elisp
-#+end_src
-* Jumping with Avy
-#+begin_src elisp
-(use-package avy
-  :commands (avy-goto-char avy-goto-word-0 avy-goto-line))
-
-;; TODO add jump to function/class definitions etc
-(my/leader-keys
- "j"   '(:ignore t :which-key "jump")
- "jj"  '(avy-goto-char :which-key "jump to char")
- "jw"  '(avy-goto-word-0 :which-key "jump to word")
- "jl"  '(avy-goto-line :which-key "jump to line"))
-#+end_src
-* Counsel
-#+begin_src elisp
-(use-package counsel
-  :bind (("M-x" . counsel-M-x)
-         ("C-x b" . counsel-ibuffer)
-         ("C-x C-f" . counsel-find-file)
-         :map minibuffer-local-map
-         ("C-r" . 'counsel-minibuffer-history)))
-#+end_src
+					      'run-at-end 'only-in-org-mode)))
+  #+end_src
 * Helpful
 Helpful is an alternative to the built-in Emacs help that provides much more contextual information.
 Bind the describe-* functions to the improved helpful-* and counsel-* versions.
@@ -526,10 +726,9 @@ Bind the describe-* functions to the improved helpful-* and counsel-* versions.
 
 * Editing Configuration
 ** Commenting Lines
-#+begin_src emacs-lisp
-;; (use-package evil-nerd-commenter
-;;   :bind ("M-/" . evilnc-comment-or-uncomment-lines))
-(use-package evil-nerd-commenter)
+#+begin_src elisp
+(use-package evil-nerd-commenter
+  :bind ("M-/" . evilnc-comment-or-uncomment-lines))
 
 ;; Emacs key bindings
 ;; (global-set-key (kbd "M-;") 'evilnc-comment-or-uncomment-lines)
@@ -537,17 +736,19 @@ Bind the describe-* functions to the improved helpful-* and counsel-* versions.
 ;; (global-set-key (kbd "C-c c") 'evilnc-copy-and-comment-lines)
 ;; (global-set-key (kbd "C-c p") 'evilnc-comment-or-uncomment-paragraphs)
 
+;; TODO why is comments showing in which-key
 (my/leader-keys
  "c"   '(:ignore c :which-key "comments")
  "ci" 'evilnc-comment-or-uncomment-lines
  "cl" 'evilnc-quick-comment-or-uncomment-to-the-line
- "ll" 'evilnc-quick-comment-or-uncomment-to-the-line
+ ;; "ll" 'evilnc-quick-comment-or-uncomment-to-the-line
  "cc" 'evilnc-copy-and-comment-lines
  "cp" 'evilnc-comment-or-uncomment-paragraphs
  "cr" 'comment-or-uncomment-region
  "cv" 'evilnc-toggle-invert-comment-line-by-line
- "."  'evilnc-copy-and-comment-operator
- "\\" 'evilnc-comment-operator ; if you prefer backslash key
+ ";" 'evilnc-comment-or-uncomment-lines
+ ;; "."  'evilnc-copy-and-comment-operator
+ ;; "\\" 'evilnc-comment-operator ; if you prefer backslash key
  )
 #+end_src
 ** Auto Clean Whitespace (butler)
@@ -588,5 +789,36 @@ Bind the describe-* functions to the improved helpful-* and counsel-* versions.
 #+end_src
 
 ** Projectile
+#+begin_src elisp
+(use-package projectile
+  :diminish projectile-mode
+  :config (projectile-mode)
+  :bind-keymap
+  ("C-c p" . projectile-command-map)
+  :init
+  (when (file-directory-p "~/Developer/python-projects")
+    (setq projectile-project-search-path '("~/Developer/python-projects")))
+  (setq projectile-switch-project-action #'projectile-dired))
+
+(use-package helm-projectile
+  :after projectile)
+
+(my/leader-keys
+ "pf"  'helm-projectile-find-file
+ "pp"  'helm-projectile-switch-project
+ "pb"  'helm-projectile-switch-to-buffer
+ "pF"  'helm-projectile-rg
+ "pp"  'helm-projectile-switch-project
+ "pc"  'projectile-compile-project
+ "pd"  'projectile-dired)
+;; (my/leader-keys
+;;  "pf"  'counsel-projectile-find-file
+;;  "pp"  'counsel-projectile-switch-project
+;;  "pb"  'counsel-projectile-switch-to-buffer
+;;  "pF"  'counsel-projectile-rg
+;;  "pp"  'counsel-projectile
+;;  "pc"  'projectile-compile-project
+;;  "pd"  'projectile-dired)
+#+end_src
 ** Languages
 *** Python
