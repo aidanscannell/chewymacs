@@ -221,7 +221,8 @@ Set frame transparency.
 ** Theme
 #+begin_src elisp
 (use-package doom-themes
-  :init (load-theme 'doom-nova t))
+  :init (load-theme 'doom-palenight t))
+  ;; :init (load-theme 'doom-nova t))
   ;; :init (load-theme 'doom-nord t))
   ;; :init (load-theme 'doom-dracula t))
 ;; :init (load-theme 'doom-laserwave t))
