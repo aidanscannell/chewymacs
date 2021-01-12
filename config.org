@@ -930,4 +930,86 @@ Bind the describe-* functions to the improved helpful-* and counsel-* versions.
    "pd"  'projectile-dired)
 #+end_src
 ** Languages
+*** Language Server Support
+#+begin_src elisp
+  ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
+  (setq lsp-keymap-prefix "C-c l")
+
+  (use-package lsp-mode
+      :hook ((python-mode . lsp-deferred)
+	     ;; (org-mode . lsp-deferred)
+	     ;; if you want which-key integration
+	     (lsp-mode . lsp-enable-which-key-integration))
+      ;; :bind (:map lsp-mode-map
+	   ;; ("TAB" . completion-at-point))
+      :commands (lsp lsp-deferred))
+
+  (use-package lsp-ui
+   :commands lsp-ui-mode
+   :hook (lsp-mode . lsp-ui-mode)
+   :config
+     (setq lsp-ui-sideline-enable t
+           lsp-ui-sideline-ignore-duplicate t
+	   lsp-ui-sideline-show-code-actions nil
+	   ;; lsp-ui-sideline-show-code-actions t
+	   lsp-ui-sideline-update-mode 'line
+	   lsp-ui-sideline-delay 0.2
+	   ;; Don't show symbol definitions in the sideline. They are pretty noisy,
+	   ;; and there is a bug preventing Flycheck errors from being shown (the
+	   ;; errors flash briefly and then disappear).
+           ;; lsp-ui-sideline-show-hover nil)
+           lsp-ui-sideline-show-hover t)
+
+     (setq
+        lsp-ui-doc-enable t ;; show docs in black box at top right
+        lsp-ui-doc-show-with-mouse nil  ; don't disappear on mouseover
+        lsp-ui-doc-show-with-cursor t   ; show doc with cursor
+        lsp-ui-doc-position 'top ;; 'at-point 'bottom
+        ;; lsp-ui-doc-max-height 8
+        ;; lsp-ui-doc-max-width 35
+	)
+    (general-def lsp-ui-peek-mode-map
+        "j"   #'lsp-ui-peek--select-next
+        "k"   #'lsp-ui-peek--select-prev
+        "C-k" #'lsp-ui-peek--select-prev-file
+        "C-j" #'lsp-ui-peek--select-next-file)
+
+    (general-def lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
+    (general-def lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references)
+
+)
+
+  ;; Disable features that have great potential to be slow.
+  (setq lsp-enable-folding nil
+        lsp-enable-text-document-color nil)
+  ;; Reduce unexpected modifications to code
+  (setq lsp-enable-on-type-formatting nil)
+
+  ;; (setq lsp-modeline-code-actions-segments '(count icon name))
+  (setq lsp-headerline-breadcrumb-segments '(project file symbols))
+  (setq lsp-headerline-breadcrumb-enable-symbol-numbers t)
+
+  ;; if you are ivy user
+  ;; (use-package lsp-ivy :commands lsp-ivy-workspace-symbol)
+  ;; (use-package lsp-treemacs :commands lsp-treemacs-errors-list)
+(use-package lsp-ivy :commands lsp-ivy-workspace-symbol lsp-ivy-global-workspace-symbol)
+
+
+  ;; optionally if you want to use debugger
+  ;; (use-package dap-mode)
+  ;; (use-package dap-LANGUAGE) to load the dap adapter for your language
+
+    (my/leader-keys
+      "l"  '(:ignore t :which-key "lsp")
+      "ld" 'xref-find-definitions
+      "lr" 'xref-find-references
+      ;; "ln" 'lsp-ui-find-next-reference
+      ;; "lp" 'lsp-ui-find-prev-reference
+      "ls" 'counsel-imenu
+      "li" 'lsp-ui-imenu
+      "le" 'lsp-ui-flycheck-list
+      "lS" 'lsp-ui-sideline-mode
+      "lX" 'lsp-execute-code-action)
+
+#+end_src
 *** Python
