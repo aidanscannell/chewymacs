@@ -147,7 +147,11 @@ Let escape quit things like =M-x= etc.
 Use [[https://github.com/noctuid/general.el][general.el]] to define prefixed keybindings, especially in conjunction with Evil mode.
 #+begin_src elisp
 (use-package general
+  ;; :after evil
   :config
+  (general-evil-setup t)
+  ;; (general-setq auto-revert-interval 10)
+
   (general-create-definer my/leader-keys
     :keymaps '(normal insert visual emacs)
     :prefix "SPC"
