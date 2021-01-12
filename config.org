@@ -887,35 +887,47 @@ Bind the describe-* functions to the improved helpful-* and counsel-* versions.
 
 ** Projectile
 #+begin_src elisp
-(use-package projectile
-  :diminish projectile-mode
-  :config (projectile-mode)
-  :bind-keymap
-  ("C-c p" . projectile-command-map)
-  :init
-  (when (file-directory-p "~/Developer/python-projects")
-    (setq projectile-project-search-path '("~/Developer/python-projects")))
-  (setq projectile-switch-project-action #'projectile-dired))
+  (use-package projectile
+    :diminish projectile-mode
+    :config (projectile-mode)
+    :bind-keymap
+    ("C-c p" . projectile-command-map)
+    :init
+    (when (file-directory-p "~/Developer/python-projects")
+      (setq projectile-project-search-path '("~/Developer/python-projects")))
+    (setq projectile-switch-project-action #'projectile-dired))
 
-(use-package helm-projectile
-  :after projectile)
+  ;; (use-package helm-projectile
+  ;;   :after projectile)
+  (use-package counsel-projectile
+    :after projectile)
 
-(my/leader-keys
- "pf"  'helm-projectile-find-file
- "pp"  'helm-projectile-switch-project
- "pb"  'helm-projectile-switch-to-buffer
- "pF"  'helm-projectile-rg
- "pp"  'helm-projectile-switch-project
- "pc"  'projectile-compile-project
- "pd"  'projectile-dired)
-;; (my/leader-keys
-;;  "pf"  'counsel-projectile-find-file
-;;  "pp"  'counsel-projectile-switch-project
-;;  "pb"  'counsel-projectile-switch-to-buffer
-;;  "pF"  'counsel-projectile-rg
-;;  "pp"  'counsel-projectile
-;;  "pc"  'projectile-compile-project
-;;  "pd"  'projectile-dired)
+  ;; (my/leader-keys
+  ;;  "pf"  'helm-projectile-find-file
+  ;;  "pp"  'helm-projectile-switch-project
+  ;;  "pb"  'helm-projectile-switch-to-buffer
+  ;;  "pF"  'helm-projectile-rg
+  ;;  "pp"  'helm-projectile-switch-project
+  ;;  "pc"  'projectile-compile-project
+  ;;  "pd"  'projectile-dired)
+
+  (general-def [remap projectile-find-file] #'counsel-projectile-find-file)
+  (general-def [remap projectile-switch-project] #'counsel-projectile-switch-project)
+  (general-def [remap projectile-switch-to-buffer] #'counsel-projectile-switch-to-buffer)
+  (general-def [remap projectile-ag] #'counsel-projectile-rg)
+   ;; (setq projectile-find-file 'counsel-projectile-find-file)
+  (my/leader-keys
+   ;; "pf"  'counsel-projectile-find-file
+   ;; "pp"  'counsel-projectile-switch-project
+   ;; "pb"  'counsel-projectile-switch-to-buffer
+   ;; "pF"  'counsel-projectile-rg
+   "pf"  'projectile-find-file
+   "pp"  'projectile-switch-project
+   "pb"  'projectile-switch-to-buffer
+   "pF"  'projectile-ag
+   ;; "pp"  'counsel-projectile
+   "pc"  'projectile-compile-project
+   "pd"  'projectile-dired)
 #+end_src
 ** Languages
 *** Python
