@@ -29,6 +29,10 @@ Measure startup time and show in modeline.
 ;; If you use `org' and don't want your org files in the default location below,
 ;; change `org-directory'. It must be set before org loads!
 (setq org-directory "~/Dropbox/org/")
+
+(setq my/emacs-private-dir (concat (getenv "HOME") "/.emacs.d/configs/vanilla-emacs"))
+(setq my/emacs-private-org-config (concat my/emacs-private-dir "/config.org"))
+(setq my/emacs-private-config (concat my/emacs-private-dir "/init.el"))
 #+end_src
 * Package Management
 Set up ELPA, MELPA, and Org package repositories.
@@ -53,6 +57,13 @@ Load use-package to manage package configuration.
 
 (require 'use-package)
 (setq use-package-always-ensure t)
+#+end_src
+* Load Path
+Add path to my Emacs lisp libraries.
+#+begin_src elisp
+;; Add my library path to load-path
+(setq my/load-path (concat my/emacs-private-dir "/private"))
+(push my/load-path load-path)
 #+end_src
 * Emacs Server/Daemon
 #+begin_src elisp
