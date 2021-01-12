@@ -268,55 +268,55 @@ Set frame transparency.
   (add-to-list 'all-the-icons-ivy-file-commands 'counsel-find-library)
   (all-the-icons-ivy-setup))
 #+end_src
-# ** Change "yes or no" to "y or n"
-# #+begin_src elisp
-# (fset 'yes-or-no-p 'y-or-n-p)
-# #+end_src
-# * Helm
-# #+begin_src elisp :tangle no
-#   (use-package helm
-#     :bind (
-#            ("C-c h" . helm-command-prefix)
-#            ("M-x" . helm-M-x)
-#            ;; ("C-x b" . counsel-ibuffer)
-#            ("C-x b" . helm-buffers-list)
-#            ("C-x C-f" . helm-find-file)
-#            ("TAB" . helm-execute-persistant-action)
-#            ;; ("C-l" . helm-execute-persistant-action)
-#            ("C-z" . helm-select-action)
-#            :map helm-map
-#            ("C-r" . 'helm-minibuffer-history)
-#            ;; :map helm-minibuffer-map
-#            ("C-j" . helm-next-line)
-#            ("C-k" . helm-previous-line)
+** Change "yes or no" to "y or n"
+#+begin_src elisp
+(fset 'yes-or-no-p 'y-or-n-p)
+#+end_src
+* Helm
+#+begin_src elisp :tangle no
+  (use-package helm
+    :bind (
+           ("C-c h" . helm-command-prefix)
+           ("M-x" . helm-M-x)
+           ;; ("C-x b" . counsel-ibuffer)
+           ("C-x b" . helm-buffers-list)
+           ("C-x C-f" . helm-find-file)
+           ("TAB" . helm-execute-persistant-action)
+           ;; ("C-l" . helm-execute-persistant-action)
+           ("C-z" . helm-select-action)
+           :map helm-map
+           ("C-r" . 'helm-minibuffer-history)
+           ;; :map helm-minibuffer-map
+           ("C-j" . helm-next-line)
+           ("C-k" . helm-previous-line)
 
-#            )
-#     :config
-#     (setq helm-recentf-fuzzy-match t
-#           helm-locate-fuzzy-match nil ;; locate fuzzy is worthless
-#           helm-M-x-fuzzy-match t
-#           helm-buffers-fuzzy-matching t
-#           helm-semantic-fuzzy-match t
-#           helm-apropos-fuzzy-match t
-#           helm-imenu-fuzzy-match t
-#           helm-lisp-fuzzy-completion t
-#           helm-completion-in-region-fuzzy-match t)
+           )
+    :config
+    (setq helm-recentf-fuzzy-match t
+          helm-locate-fuzzy-match nil ;; locate fuzzy is worthless
+          helm-M-x-fuzzy-match t
+          helm-buffers-fuzzy-matching t
+          helm-semantic-fuzzy-match t
+          helm-apropos-fuzzy-match t
+          helm-imenu-fuzzy-match t
+          helm-lisp-fuzzy-completion t
+          helm-completion-in-region-fuzzy-match t)
 
-#     (global-unset-key (kbd "C-x c"))
+    (global-unset-key (kbd "C-x c"))
 
-#     ;; open helm buffer inside current window, don't occupy the entire other window
-#     (setq helm-split-window-in-side-p t)
-#     ;; move to end or beginning of source when reaching top or bottom of source.
-#     (setq helm-move-to-line-cycle-in-source t)
-#     (setq helm-move-to-line-cycle-in-source nil)
+    ;; open helm buffer inside current window, don't occupy the entire other window
+    (setq helm-split-window-in-side-p t)
+    ;; move to end or beginning of source when reaching top or bottom of source.
+    (setq helm-move-to-line-cycle-in-source t)
+    (setq helm-move-to-line-cycle-in-source nil)
 
-#     (helm-autoresize-mode)
-#     ;; These numbers are percentages
-#     (setq helm-autoresize-min-height 20
-#           helm-autoresize-max-height 40)
+    (helm-autoresize-mode)
+    ;; These numbers are percentages
+    (setq helm-autoresize-min-height 20
+          helm-autoresize-max-height 40)
 
-#     )
-# #+end_src
+    )
+#+end_src
 * Ivy
 #+begin_src elisp
 (use-package ivy
