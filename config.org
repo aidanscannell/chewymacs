@@ -1013,3 +1013,298 @@ Bind the describe-* functions to the improved helpful-* and counsel-* versions.
 
 #+end_src
 *** Python
+#+begin_src elisp
+
+      (use-package python-mode
+        :ensure t
+        ;; :hook (python-mode . lsp-deferred)
+        ;; :custom
+        ;; ;; NOTE: Set these if Python 3 is called "python3" on your system!
+        ;; ;; (python-shell-interpreter "python3")
+        ;; ;; (dap-python-executable "python3")
+        ;; (dap-python-debugger 'debugpy)
+        ;; :config
+        ;; (require 'dap-python)
+        )
+
+      ;; Adds/removes used/unused imports
+      (use-package pyimport
+        :defer t)
+
+      ;; Format on save in python-mode
+      (use-package blacken
+        :delight
+        :hook (python-mode . blacken-mode)
+        :custom (blacken-line-length 79))
+
+      ;; Sorts imports
+      (use-package py-isort
+        :after python
+        :hook ((python-mode . pyvenv-mode)
+               (before-save . py-isort-before-save)))
+
+      ;; (use-package elpy
+      ;;   :ensure t
+      ;;   :defer t
+      ;;   :init
+      ;;   (advice-add 'python-mode :before 'elpy-enable)
+      ;;   :config
+      ;;   ;; (setq python-shell-interpreter "ipython"
+      ;;   (setq python-shell-interpreter "ipython"
+      ;;         python-shell-interpreter-args "-i --simple-prompt")
+      ;;   )
+
+      (use-package lsp-pyright
+        :ensure t
+        :after lsp-mode
+        :hook
+        ;; (
+        (python-mode . (lambda ()
+                         (require 'lsp-pyright)
+                         (lsp-deferred)
+                         (setq lsp-pyright-python-executable-cmd "poetry")
+                         ))  ; or lsp-deferred
+        ;; (python-mode . (lambda () (when (poetry-venv-exist-p)
+        ;; 			    ;; (setq-local lsp-pyls-server-command '("poetry" "run" "pyls"))
+        ;; 			    (setq-local lsp-python-ms-python-executable '("poetry" "run" "pyls"))
+        ;; 			    (poetry-venv-workon)
+        ;; 			    )))
+        ;; )
+        )
+      (setq lsp-pyright-typechecking-mode 'off)
+      (setq lsp-pyright-typechecking-mode 'strict)
+
+      (setq python-shell-interpreter "ipython"
+            python-shell-interpreter-args "-i --simple-prompt")
+      (setq lsp-python-ms-python-executable-cmd python-shell-interpreter)
+      ;; (use-package lsp-python-ms
+      ;; 	:ensure t
+      ;; 	:after poetry
+      ;; 	:init (setq lsp-python-ms-auto-install-server t)
+      ;; 	;; :hook (python-mode . lsp-deferred))
+      ;; 	;; :hook (python-mode . (lambda ()
+      ;; 	;;                         (require 'lsp-python-ms)
+      ;; 	;;                         (lsp))))  ; or lsp-deferred
+      ;; 	:config
+      ;; 	;; (put 'lsp-python-ms-python-executable 'safe-local-variable 'stringp)
+      ;; 	;; ;; attempt to activate Poetry env first
+      ;; 	;; (when (stringp (poetry-find-project-root))
+      ;; 	;; 	  (poetry-venv-workon)
+      ;; 	;; 	  ;; (setq lsp-python-ms-python-executable-cmd "poetry run python")
+      ;; 	;; )
+      ;; 	:hook
+      ;; 	(
+      ;; 	;; (python-mode . (lambda () (when (poetry-venv-exist-p)
+      ;; 	;; 				;; (setq-local lsp-pyls-server-command '("poetry" "run" "pyls"))
+      ;; 	;; 				(setq-local lsp-python-ms-python-executable '("poetry" "run" "pyls"))
+      ;; 	;; 				(poetry-venv-workon)
+      ;; 	;;                           )))
+      ;; 	(python-mode . (lambda ()
+      ;; 			  (require 'lsp-python-ms)
+      ;; 			  (lsp-deferred)))
+      ;; 	)
+      ;; 	;; :hook
+      ;; 	;; (
+      ;; 	;; (python-mode . (lambda ()
+      ;; 	;; 			(require 'lsp-python-ms)
+      ;; 	;; 			(lsp-deferred)))
+      ;; 	;; ;; if .dir-locals exists, read it first, then activate mspyls
+      ;; 	;; (hack-local-variables . (lambda ()
+      ;; 	;; 				(when (derived-mode-p 'python-mode)
+      ;; 	;; 				(require 'lsp-python-ms)
+      ;; 	;; 				(lsp-deferred))))
+      ;; 	;; )
+      ;; 	)
+
+      (setq python-shell-interpreter "ipython"
+            python-shell-interpreter-args "-i --simple-prompt")
+
+      (use-package pyvenv
+        :config
+        (pyvenv-mode 1))
+
+      ;; Add docstrings to functions
+      (use-package sphinx-doc
+        :config
+        (add-hook 'python-mode-hook (lambda ()
+                                      (require 'sphinx-doc)
+                                      (sphinx-doc-mode t))))
+
+      ;; Set python version using pyenv, looks for .python-version
+      (use-package pyenv-mode
+        :after python
+        :config
+        (pyenv-mode +1)
+        (when (executable-find "pyenv")
+          (add-to-list 'exec-path (expand-file-name "shims" (or (getenv "PYENV_ROOT") "~/.pyenv"))))
+        (add-hook 'python-mode-local-vars-hook #'+python-pyenv-mode-set-auto-h)
+        ;; (add-hook 'doom-switch-buffer-hook #'+python-pyenv-mode-set-auto-h)
+        )
+
+      (use-package transient)
+      (use-package poetry
+        ;; :after python-mode pyvenv transient
+        ;; :init
+        ;; (add-hook 'python-mode-hook #'poetry-tracking-mode))
+        :ensure t
+        :hook
+        ;; activate poetry-tracking-mode when python-mode is active
+        (python-mode . poetry-tracking-mode)
+        ;; :config
+        ;; (setq poetry-tracking-strategy 'switch-buffer)
+        )
+      ;; (use-package poetry
+      ;;   :ensure t
+      ;;   :hook
+      ;;   ;; activate poetry-tracking-mode when python-mode is active
+      ;;   (python-mode . poetry-tracking-mode)
+      ;;   )
+
+      ;; (use-package dap-mode
+      ;;     :after lsp-mode
+      ;;     :config
+      ;;     (dap-mode t)
+      ;;     (dap-ui-mode t))
+
+      ;; (defun poetry-projectile-after-switch-function ()
+      ;;   "When a Poetry project is found, activate the virtual environment, \
+      ;; and open a poetry shell and a Python interpreter."
+      ;;   ;; Always clean up, in case we were in a Python project previously.
+      ;;   (poetry-venv-deactivate)
+      ;;   ;; Only activate if we can verify this is a Pipenv project.
+      ;;   ;; (poetry-ensure-in-project)
+      ;;   ;; ;; (poetry-activate)
+      ;;   ;; (poetry-venv-workon)
+      ;;   ;; (poetry-shell)
+      ;;   ;; (run-python))
+      ;;   (poetry-ensure-in-project)
+      ;;   (shell (poetry-buffer-name "ipython-shell"))
+      ;;   (process-send-string (get-buffer-process
+      ;; 			(get-buffer (poetry-buffer-name "ipython-shell")))
+      ;; 		       "poetry run ipython\n"))
+
+      ;; (defun poetry-activate-projectile ()
+      ;;   "Activate integration of Poetry with Projectile."
+      ;;   (add-hook
+      ;;    'projectile-after-switch-project-hook
+      ;;    (lambda () (funcall poetry-projectile-after-switch-function))))
+
+      ;; ;; (defun my/pipenv-projectile-after-switch-extended ()
+      ;;   "When a Pipenv project is found, activate the virtual environment, \
+      ;; and open a Pipenv shell and a Python interpreter."
+      ;;   ;; Always clean up, in case we were in a Python project previously.
+      ;;   (pipenv-deactivate)
+      ;;   ;; Only activate if we can verify this is a Pipenv project.
+      ;;   (when (pipenv-project?)
+      ;;     (pipenv-activate)
+      ;;     (pipenv-shell)
+      ;;     (run-python)))
+
+      ;; (use-package pipenv
+      ;;   :hook (python-mode . pipenv-mode)
+      ;;   :init
+      ;;   (setq
+      ;;    pipenv-projectile-after-switch-function
+      ;;    #'pipenv-projectile-after-switch-extended))
+
+      (defun spacemacs/pyenv-executable-find (command)
+        "Find executable taking pyenv shims into account.
+      If the executable is a system executable and not in the same path
+      as the pyenv version then also return nil. This works around https://github.com/pyenv/pyenv-which-ext
+      "
+        (if (executable-find "pyenv")
+            (progn
+              (let ((pyenv-string (shell-command-to-string (concat "pyenv which " command)))
+                    (pyenv-version-names (split-string (string-trim (shell-command-to-string "pyenv version-name")) ":"))
+                    (executable nil)
+                    (i 0))
+                (if (not (string-match "not found" pyenv-string))
+                    (while (and (not executable)
+                                (< i (length pyenv-version-names)))
+                      (if (string-match (elt pyenv-version-names i) (string-trim pyenv-string))
+                          (setq executable (string-trim pyenv-string)))
+                      (if (string-match (elt pyenv-version-names i) "system")
+                          (setq executable (string-trim (executable-find command))))
+                      (setq i (1+ i))))
+                executable))
+          (executable-find command)))
+
+      (defun spacemacs/python-execute-file (arg)
+        "Execute a python script in a shell."
+        (interactive "P")
+        ;; set compile command to buffer-file-name
+        ;; universal argument put compile buffer in comint mode
+        (let ((universal-argument t)
+              (compile-command (format "%s %s"
+                                       (spacemacs/pyenv-executable-find python-shell-interpreter)
+                                       (shell-quote-argument (file-name-nondirectory buffer-file-name)))))
+          (if arg
+              (call-interactively 'compile)
+            (compile compile-command t)
+            (with-current-buffer (get-buffer "*compilation*")
+              (inferior-python-mode)))))
+
+      (defun spacemacs/python-execute-file-focus (arg)
+        "Execute a python script in a shell and switch to the shell buffer in
+       `insert state'."
+        (interactive "P")
+        (spacemacs/python-execute-file arg)
+        (switch-to-buffer-other-window "*compilation*")
+        (end-of-buffer)
+        (evil-insert-state))
+
+
+      (defun my/poetry-execute-in-ipython ()
+        "Run file in ipython shell inside poetry environment of current file/path"
+        (interactive)
+        ;; (poetry-venv-deactivate)
+        ;; (shell (poetry-buffer-name "ipython-shell"))
+        (vterm (poetry-buffer-name "ipython-shell"))
+        (process-send-string (get-buffer-process
+                              (get-buffer (poetry-buffer-name "ipython-shell")))
+                             (concat (concat "poetry run" (buffer-file-name (window-buffer (minibuffer-selected-window)))) "\n"))
+        (set-window-buffer nil (get-buffer (poetry-buffer-name "ipython-shell"))))
+
+      ;; Stop the spam!
+      (setq python-indent-guess-indent-offset-verbose nil)
+
+      ;; (define-key python-mode-map (kbd "DEL") nil) ; interferes with smartparens
+
+      ;; Elpy functions
+      (defun my/elpy-shell-send-file-current ()
+        "Run \"elpy-shell-send-file\" with current file"
+        (interactive)
+        (elpy-shell-send-file (buffer-file-name (window-buffer (minibuffer-selected-window)))))
+
+      (my/local-leader-keys
+       :states 'normal
+       :keymaps 'python-mode-map
+       "d"  'sphinx-doc
+       "c"  'my/poetry-execute-in-ipython
+       "f"  '(blacken-buffer :which-key "format buffer (black)")
+       ;; "c"  'spacemacs/python-execute-file-focus
+       ;; "c"  'my/elpy-shell-send-file-current
+       "i"  '(:ignore i :which-key "imports")
+       "ii" 'pyimport-insert-missing
+       "ir" 'pyimport-remove-unused
+       "is" 'py-isort-buffer
+       "v"  '(:ignore v :which-key "virtual envs")
+       "va" 'pyvenv-activate
+       "vd" 'pyvenv-deactivate
+       "vs" 'pyvenv-shell
+       "vo" 'pyvenv-open
+       "vi" 'pyvenv-install
+       "vu" 'pyvenv-uninstall
+       "vw" 'pyvenv-workon
+       "vc" 'pyvenv-create
+       ;; "va" 'pipenv-activate
+       ;; "vd" 'pipenv-deactivate
+       ;; "vs" 'pipenv-shell
+       ;; "vo" 'pipenv-open
+       ;; "vi" 'pipenv-install
+       ;; "vu" 'pipenv-uninstall
+       ;; "vw" 'pipenv-workon
+       ;; "vc" 'pipenv-create
+       )
+#+end_src
+** Company Mode
