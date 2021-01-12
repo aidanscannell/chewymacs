@@ -592,13 +592,18 @@ if prefix argument ARG is given, switch to it in an other, possibly new window."
  "wW"  'ace-window
  )
 #+end_src
+** persp-mode
+#+begin_src elisp
+(use-package persp-mode)
+
+;; (my/leader-keys
+;;  "wD"  'ace-delete-window
+;;  "wW"  'ace-window
+;;  )
+#+end_src
 * File Management
 ** Open Private Config
 #+begin_src elisp
-(setq my/emacs-private-dir (concat (getenv "HOME") "/.emacs.d/configs/vanilla-emacs/"))
-(setq my/emacs-private-org-config (concat my/emacs-private-dir "/config.org"))
-(setq my/emacs-private-config (concat my/emacs-private-dir "/init.el"))
-
 (defun my/open-private-org-config ()
   "Open `my/emacs-private-org-config'."
   (interactive)
@@ -787,6 +792,8 @@ vterm is a fully-fledged terminal emulator within Emacs which I can use instead 
 
 )
 #+end_src
+** eshell
+
 * Auto "Tangle" on Save
   This function auto tangles org mode source blocks when a file is saved. This is helpful for tangling this literate config file (upon save).
   #+begin_src elisp
@@ -1307,7 +1314,7 @@ Bind the describe-* functions to the improved helpful-* and counsel-* versions.
        ;; "vc" 'pipenv-create
        )
 #+end_src
-** Company Mode
+** Completion with Company
 #+begin_src elisp
 (use-package company
     :after lsp-mode evil
