@@ -1356,3 +1356,75 @@ Bind the describe-* functions to the improved helpful-* and counsel-* versions.
 	company-box-icons-alist 'company-box-icons-all-the-icons))
 #+end_src
 ** Productivity
+*** Syntax Checking with flycheck
+#+begin_src elisp
+;; (use-package flycheck
+;;   :defer t
+;;   :commands flycheck-list-errors flycheck-buffer
+;;   :hook (lsp-mode . flycheck-mode)
+;;   :config
+;;   (setq flycheck-emacs-lisp-load-path 'inherit)
+
+;;   ;; Rerunning checks on every newline is a mote excessive.
+;;   (delq 'new-line flycheck-check-syntax-automatically)
+;;   ;; And don't recheck on idle as often
+;;   (setq flycheck-idle-change-delay 1.0)
+
+;;   ;; For the above functionality, check syntax in a buffer that you switched to
+;;   ;; only briefly. This allows "refreshing" the syntax check state for several
+;;   ;; buffers quickly after e.g. changing a config file.
+;;   (setq flycheck-buffer-switch-check-intermediate-buffers t)
+
+;;   ;; Display errors a little quicker (default is 0.9s)
+;;   (setq flycheck-display-errors-delay 0.25)
+
+;; )
+;; (with-eval-after-load 'flycheck
+;;   '(add-hook 'flycheck-mode-hook 'flycheck-popup-tip-mode))
+#+end_src
+*** Snippets
+#+begin_src elisp
+(use-package yasnippet
+  :hook (prog-mode . yas-minor-mode)
+  :commands (yas-minor-mode-on
+             yas-expand
+             yas-expand-snippet
+             yas-lookup-snippet
+             yas-insert-snippet
+             yas-new-snippet
+             yas-visit-snippet-file
+             yas-activate-extra-mode
+             yas-deactivate-extra-mode)
+  :config
+  ;; (unless (daemonp)
+  ;;   ;; Ensure `yas-reload-all' is called as late as possible. Other modules
+  ;;   ;; could have additional configuration for yasnippet. For example,
+  ;;   ;; file-templates.
+  ;;   (add-transient-hook! 'yas-minor-mode-hook (yas-reload-all)))
+
+  ;; Remove default ~/.emacs.d/snippets
+  (defvar yas-snippet-dirs nil)
+
+  ;; Remove GUI dropdown prompt (prefer ivy/helm)
+  ;; (delq! 'yas-dropdown-prompt yas-prompt-functions)
+  ;; Prioritize private snippets in `+snippets-dir' over built-in ones if there
+  ;; are multiple choices.
+  (add-to-list 'yas-prompt-functions #'+snippets-prompt-private)
+
+
+  )
+
+(setq doom-snippets-load-path (concat my/load-path "/doom-snippets"))
+(use-package doom-snippets
+  :load-path doom-snippets-load-path
+  ;; :load-path '(concat my/emacs-private-dir "/private/doom-snippets")
+  :after yasnippet
+  ;; :config
+  ;; (yas-reload-all)
+  )
+
+(my/leader-keys
+ "i"   '(:ignore i :which-key "insert")
+ "is"  'yas-insert-snippet
+ )
+#+end_src
