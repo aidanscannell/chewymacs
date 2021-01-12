@@ -129,6 +129,7 @@ Let escape quit things like =M-x= etc.
   ;; (evil-collection-outline-bind-tab-p nil)
   :config
   (evil-collection-init))
+
 #+end_src
 
 ** Which Key
@@ -430,9 +431,10 @@ Set frame transparency.
  "jw"  '(avy-goto-word-0 :which-key "jump to word")
  "jl"  '(avy-goto-line :which-key "jump to line")
  "ju"  'avy-goto-url
- "ji"  'helm-semantic-or-imenu
+ "ji"  'counsel-imenu
+ "jb"  'counsel-ibuffer
  ;; "ji"  'helm-jump-in-buffer
- "jI"  'helm-imenu-in-all-buffers
+ ;; "jI"  'helm-imenu-in-all-buffers
  "jc"  'goto-last-change
  "jf"  'find-function
  "jv"  'find-variable
@@ -620,10 +622,13 @@ if prefix argument ARG is given, switch to it in an other, possibly new window."
 
 
 (my/leader-keys
+ "r"   '(ivy-resume :which-key "ivy resume")
  "f"   '(:ignore f :which-key "files")
  "fs"  'save-buffer
  "ff"  'counsel-find-file
- "fr"  'helm-recentf
+ "fr"  'counsel-recentf
+ "fR"  'revert-buffer
+ "fj"  'counsel-file-jump
  "fp"  'my/open-private-org-config
  "fP"  'my/open-private-config-dir
  )
