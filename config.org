@@ -156,12 +156,20 @@ Use [[https://github.com/noctuid/general.el][general.el]] to define prefixed key
   (general-create-definer my/ctrl-c-keys
     :prefix "C-c")
 
+  (general-create-definer my/local-leader-keys
+    :prefix ",")
+  (which-key-add-key-based-replacements
+    ","     "<localleader>")
+  ;; "SPC m" "<localleader>")
+
   (my/leader-keys
    ;; ":" '(M-x :which-key "counsel-M-x")
-   ":" '(helm-M-x :which-key "M-x")
-   "SPC" '(helm-M-x :which-key "M-x")
+   ":" '(counsel-M-x :which-key "M-x")
+   "SPC" '(counsel-M-x :which-key "M-x")
+   "C-SPC" '(counsel-M-x :which-key "M-x")
    "t"  '(:ignore t :which-key "toggles")
    "tt" '(counsel-load-theme :which-key "choose theme"))
+
   )
 #+end_src
 
